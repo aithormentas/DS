@@ -1,0 +1,100 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+public class ControladorSim {
+	
+	private byte e;
+	private float pr;
+	private int diasSim;
+	private HashMap<CorralID, EspecCorralesSim> corralesGranja;
+	private List<CorralID> corralesSim;
+	private List<ResultadosSim> resultadoSim;
+	private Enfermedad vector;
+	private CatCorralesSim catCorrales;
+	
+	public ControladorSim() {
+		
+	}
+	
+	public void paramSim() {
+		
+		this.e = vector.get_E();
+		this.pr = vector.get_pr();
+		this.corralesSim = new ArrayList<CorralID>();
+		this.resultadoSim = new ArrayList<ResultadosSim>();
+		
+	}
+	
+	public void realizarSim(int dias) {
+		
+		this.diasSim = dias;
+		
+		for(int i = 1; i<= diasSim; i++) {
+			
+			long pobi = 0, infi = 0, trasi = 0;
+			
+			for (CorralID corralIDi : corralesGranja.keySet()) {
+			    
+				pobi = catCorrales.getPoblacion(corralIDi);
+				infi = catCorrales.getInfectados(corralIDi);
+
+				for (CorralID corralIDj : corralesGranja.keySet()) {
+					
+					if(!corralIDj.equals(corralIDi)) {
+						
+						long pobj = catCorrales.getPoblacion(corralIDj);
+						long infj = catCorrales.getInfectados(corralIDj);
+						long trasij = catCorrales.getTraslados(corralIDi,corralIDj);
+						
+						trasi = trasi + addTraslados(trasij,pobj,infj);
+						
+					}
+				}
+				
+				long infiDiaSig = calcInfectadosDiaSig(pobi, infi, trasi, e, pr);
+				catCorrales.setInfectadosDiaSig(infiDiaSig,corralIDi);
+			
+				if(corralesSim.contains(corralIDi)) {
+					ResultadosSim resultado = addResultDia(i,pobi,infi,corralIDi);
+					resultadoSim.add(resultado);
+				}
+			
+			}	
+				
+		}
+		
+	}
+	
+	private long addTraslados(long trasij, long pobj, long infj) {
+		
+		return trasij*pobj/infj;
+		
+	}
+
+	public void seleccionarCorral(CorralID corralID, boolean seleccionado) {
+		
+		catCorrales.addCorral(corralID, seleccionado);
+		if (seleccionado) {
+			corralesSim.add(corralID);
+			long pob = catCorrales.getPoblacion(corralID);
+			long inf = catCorrales.getInfectados(corralID);
+			ResultadosSim resultado = addResultDia(0,pob,inf,corralID);
+			resultadoSim.add(resultado);
+		}
+		
+	}
+	
+	private long calcInfectadosDiaSig(long pobi, long infi, long trasi, byte e, float pr) {
+		 
+		long infDiaSig = (long) (infi + pr*e*(1-(infi/pobi))*(pobi+trasi));
+		return infDiaSig;
+		
+	}
+	
+	private ResultadosSim addResultDia(int i, long pob, long inf, CorralID corralID) {
+		ResultadosSim resultado = new ResultadosSim(i,pob,inf,corralID);
+		return resultado;
+	}
+
+}
